@@ -4,6 +4,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support.ui import Select
+from selenium.webdriver.common.action_chains import ActionChains
 import time
 
 #-------------------------------------------------------
@@ -90,20 +91,27 @@ click('login', '//*[@id="checkout_checkoutMethod"]/form/div[3]/button')
 #wait(5)
 #'//*[@id="shippingAddress"]'
 #input('address', '//*[@id="shippingAddress"]', "s", True)
-wait(1)
-dd = driver.find_element(By.XPATH, '//*[@id="checkout_shippingInformation"]/form/div[2]/div/div[1]')
-wait(1)
-dd.click()
-wait(5)
+
+
+
+
+#dd = driver.find_element(By.XPATH, '//*[@id="checkout_shippingInformation"]/form/div[2]/div/div[1]')
+#wait(1)
+#dd.click()
+click('shipping-dropdown', '//*[@id="checkout_shippingInformation"]/form/div[2]/div/div[1]')
+
 #click('x', '//*[@id="checkout_shippingInformation"]/form/div[2]/div/div[3]/ul/li[1]/span')
-click('x2', '//*[@id="checkout_shippingInformation"]/form/div[2]/div/div[3]/ul/li[1]/span/span')
-wait(5)
+#click('x2', '//*[@id="checkout_shippingInformation"]/form/div[2]/div/div[3]/ul/li[1]/span/span')
+actions = ActionChains(driver)
+#actions.send_keys('si')
+actions.send_keys(Keys.ENTER)
+actions.perform()
 #dd.send_keys(Keys.RETURN)
 
 
-'''
 click('nopromo', '//*[@id="checkout_shippingInformation"]/form/div[3]/label')
 click('continue-to-delivery', '//*[@id="checkout_shippingInformation"]/form/div[5]/button')
+'''
 
 click('continue-to-checkout', '//*[@id="checkout_shippingMethod"]/form/div[2]/button')
 
