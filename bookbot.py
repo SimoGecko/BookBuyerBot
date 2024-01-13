@@ -14,8 +14,9 @@ import re
 
 import secrets
 # data
-botemail = secrets.email
-botpssw = secrets.password
+
+login_email = secrets.email
+login_password = secrets.password
 card_number = secrets.cardnumber
 card_expiry = secrets.cardexpiry
 card_cvv = secrets.cardcvv
@@ -44,12 +45,12 @@ def focus(name, xpath):
 	iframe = driver.find_element(By.XPATH, xpath)
 	driver.switch_to.frame(iframe)
 
-def focusout():
+def defocus():
 	driver.switch_to.default_content()
 
 #-------------------------------------------------------
 
-def randomfileline(path):
+def random_file_line(path):
 	with open(path, 'r') as file:
 	    lines = file.readlines()
 	return random.choice(lines)
@@ -61,28 +62,20 @@ def is_close_match(title1, author1, title2, author2, threshold=80):
 
 def filter_books(books, target_title, target_author):
 	return [book for book in books if is_close_match(book[0], book[1], target_title, target_author)]
-	'''
-    filtered_books = []
-    for book in books:
-        title, author, price = book
-        if is_close_match(target_title, target_author, title, author):
-            filtered_books.append(book)
-    return filtered_books
-    '''
 
-def find_most_expensive_within_price_difference(books):
+def find_best_priced_book(books):
     sorted_books = sorted(books, key=lambda x: x[2])
     min_price = sorted_books[0][2]
-    max_allowed_price = max(min_price + max_price_over_cheapest, max_price)
-    print("max_allowed_price " + max_allowed_price)
+    max_allowed_price = min(max_price, min_price + max_price_over_cheapest)
+    print("max_allowed_price " + str(max_allowed_price))
     eligible_books = [book for book in sorted_books if book[2] <= max_allowed_price]
     if eligible_books:
-        return max(eligible_books, key=lambda x: x[2]) # todo: this should already be sorted
+    	return eligible_books[-1]
     else:
         return None
 
-def extract_price(pricestr):
-	match = re.search(r'\d+(\.\d+)?', pricestr)
+def extract_price(price_str):
+	match = re.search(r'\d+(\.\d+)?', price_str)
 	if match:
 	    return float(match.group())
 	else:
@@ -106,10 +99,10 @@ driver.get(url)
 click('accept-cookies', '//*[@id="onetrust-accept-btn-handler"]')
 click('close-localechange', '//*[@id="__BVID__297___BV_modal_body_"]/div[2]/div[1]/div[2]/div')
 
-booksearch = randomfileline('books.txt')
-booksearch = 'Think and Grow Rich - Napoleon Hill' # TODO: remove
-target_title, target_author = booksearch.split(' - ')
-input('search', '//*[@id="__layout"]/div/section/div[3]/div[1]/div/input', booksearch, True)
+book_search = random_file_line('books.txt')
+book_search = 'Think and Grow Rich - Napoleon Hill' # TODO: remove
+target_title, target_author = book_search.split(' - ')
+input('search', '//*[@id="__layout"]/div/section/div[3]/div[1]/div/input', book_search, True)
 
 # TODO: Handle if a single book is found and we're already on that page
 # TODO: Handle if we error out 404
@@ -124,7 +117,6 @@ for bookelem in bookelems:
 	book = (title, author, price)
 	books.append(book)
 	#print(book)
-	#print(f"{title} - {author} ({price})")
 
 filtered_books = filter_books(books, target_title, target_author)
 
@@ -137,12 +129,12 @@ sorted_books = sorted(filtered_books, key=lambda x: x[2])
 for book in sorted_books:
     print(f"\t{book}")
 
-bestbook = find_most_expensive_within_price_difference(filtered_books)
+best_book = find_best_priced_book(filtered_books)
 print(f"BEST BOOK:")
-print(f"\t{bestbook}")
+print(f"\t{best_book}")
 
-bestindex = 0 # TODO
-bookelems[bestindex].find_element(By.CLASS_NAME, 'btn-yellow').click() # add to cart
+best_index = books.index(best_book)
+bookelems[best_index].find_element(By.CLASS_NAME, 'btn-yellow').click() # add to cart
 
 '''
 click('cart', '//*[@id="__layout"]/div/section/div[3]/div[2]/span')
@@ -168,13 +160,13 @@ click('continue-to-checkout', '//*[@id="checkout_shippingMethod"]/form/div[2]/bu
 
 focus('card1', '//*[@id="cardNumber"]')
 input('cardnumber', '//*[@id="checkout-frames-card-number"]', card_number)
-focusout()
+defocus()
 focus('card2', '//*[@id="expiryDate"]')
 input('cardexpiry', '//*[@id="checkout-frames-expiry-date"]', card_expiry.replace('/', ''))
-focusout()
+defocus()
 focus('card3', '//*[@id="cvv"]')
 input('cardcvv', '//*[@id="checkout-frames-cvv"]', card_cvv)
-focusout()
+defocus()
 
 #click('complete-order', '//*[@id="checkout_paymentInformation"]/div[1]/div/form/div[2]/button')
 '''
