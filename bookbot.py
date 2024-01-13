@@ -9,12 +9,14 @@ import time
 
 #-------------------------------------------------------
 
+import secrets
 # data
-botemail = 'testemail@gmail.com'
-botpssw = 'testpassword'
-card_number = '0000111122223333'
-card_expiry = '01/30'
-card_cvv = '000'
+botemail = secrets.email
+botpssw = secrets.password
+card_number = secrets.cardnumber
+card_expiry = secrets.cardexpiry
+card_cvv = secrets.cardcvv
+
 booksearch = "12 rules for life" # TODO: find at random from list
 max_price = 15
 max_price_over_cheapest = 3
@@ -102,7 +104,7 @@ focus('card1', '//*[@id="cardNumber"]')
 input('cardnumber', '//*[@id="checkout-frames-card-number"]', card_number)
 focusout()
 focus('card2', '//*[@id="expiryDate"]')
-input('cardexpiry', '//*[@id="checkout-frames-expiry-date"]', card_expiry)
+input('cardexpiry', '//*[@id="checkout-frames-expiry-date"]', card_expiry.replace('/', ''))
 focusout()
 focus('card3', '//*[@id="cvv"]')
 input('cardcvv', '//*[@id="checkout-frames-cvv"]', card_cvv)
