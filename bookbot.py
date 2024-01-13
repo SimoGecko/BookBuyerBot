@@ -5,7 +5,10 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support.ui import Select
 from selenium.webdriver.common.action_chains import ActionChains
+from fuzzywuzzy import fuzz
 import time
+import random
+import re
 
 #-------------------------------------------------------
 
@@ -17,7 +20,6 @@ card_number = secrets.cardnumber
 card_expiry = secrets.cardexpiry
 card_cvv = secrets.cardcvv
 
-booksearch = "12 rules for life" # TODO: find at random from list
 max_price = 15
 max_price_over_cheapest = 3
 
@@ -47,6 +49,47 @@ def focusout():
 
 #-------------------------------------------------------
 
+def randomfileline(path):
+	with open(path, 'r') as file:
+	    lines = file.readlines()
+	return random.choice(lines)
+
+def is_close_match(title1, author1, title2, author2, threshold=80):
+    title_similarity  = fuzz.token_sort_ratio(title1.lower(), title2.lower())
+    author_similarity = fuzz.token_sort_ratio(author1.lower(), author2.lower())
+    return title_similarity >= threshold and author_similarity >= threshold
+
+def filter_books(books, target_title, target_author):
+	return [book for book in books if is_close_match(book[0], book[1], target_title, target_author)]
+	'''
+    filtered_books = []
+    for book in books:
+        title, author, price = book
+        if is_close_match(target_title, target_author, title, author):
+            filtered_books.append(book)
+    return filtered_books
+    '''
+
+def find_most_expensive_within_price_difference(books):
+    sorted_books = sorted(books, key=lambda x: x[2])
+    min_price = sorted_books[0][2]
+    max_allowed_price = max(min_price + max_price_over_cheapest, max_price)
+    print("max_allowed_price " + max_allowed_price)
+    eligible_books = [book for book in sorted_books if book[2] <= max_allowed_price]
+    if eligible_books:
+        return max(eligible_books, key=lambda x: x[2]) # todo: this should already be sorted
+    else:
+        return None
+
+def extract_price(pricestr):
+	match = re.search(r'\d+(\.\d+)?', pricestr)
+	if match:
+	    return float(match.group())
+	else:
+	    return None
+
+#-------------------------------------------------------
+
 options = webdriver.ChromeOptions()
 options.add_experimental_option("detach", True) # keep the window alive
 options.add_argument("lang=en-GB")
@@ -60,25 +103,48 @@ driver.get(url)
 
 #-------------------------------------------------------
 
-click("accept-cookies", '//*[@id="onetrust-accept-btn-handler"]')
-click("stay-uk", '//*[@id="__BVID__297___BV_modal_body_"]/div[2]/div[1]/div[2]/div')
+click('accept-cookies', '//*[@id="onetrust-accept-btn-handler"]')
+click('close-localechange', '//*[@id="__BVID__297___BV_modal_body_"]/div[2]/div[1]/div[2]/div')
 
-input("search", '//*[@id="__layout"]/div/section/div[3]/div[1]/div/input', booksearch, True)
+booksearch = randomfileline('books.txt')
+booksearch = 'Think and Grow Rich - Napoleon Hill' # TODO: remove
+target_title, target_author = booksearch.split(' - ')
+input('search', '//*[@id="__layout"]/div/section/div[3]/div[1]/div/input', booksearch, True)
 
 # TODO: Handle if a single book is found and we're already on that page
 # TODO: Handle if we error out 404
 prodlist = driver.find_element(By.ID, 'atcssearch-undefined')
-books = prodlist.find_elements(By.CLASS_NAME, 'gridItem')
+bookelems = prodlist.find_elements(By.CLASS_NAME, 'gridItem')
+books = []
 #print(len(books))
+for bookelem in bookelems:
+	title  = bookelem.find_element(By.CLASS_NAME, 'title').text
+	author = bookelem.find_element(By.CLASS_NAME, 'author').text[3:] # trim initial 'by '
+	price  = extract_price(bookelem.find_element(By.CLASS_NAME, 'itemPrice').text)
+	book = (title, author, price)
+	books.append(book)
+	#print(book)
+	#print(f"{title} - {author} ({price})")
+
+filtered_books = filter_books(books, target_title, target_author)
+
+print("ALL BOOKS:")
 for book in books:
-	title  = book.find_element(By.CLASS_NAME, 'title').text
-	author = book.find_element(By.CLASS_NAME, 'author').text
-	price  = book.find_element(By.CLASS_NAME, 'itemPrice').text
-	#print(f"{title} - {author} ({price} CHF)")
+    print(f"\t{book}")
 
-bestindex = 0
-books[bestindex].find_element(By.CLASS_NAME, 'btn-yellow').click() # add to cart
+print("FILTERED BOOKS:")
+sorted_books = sorted(filtered_books, key=lambda x: x[2])
+for book in sorted_books:
+    print(f"\t{book}")
 
+bestbook = find_most_expensive_within_price_difference(filtered_books)
+print(f"BEST BOOK:")
+print(f"\t{bestbook}")
+
+bestindex = 0 # TODO
+bookelems[bestindex].find_element(By.CLASS_NAME, 'btn-yellow').click() # add to cart
+
+'''
 click('cart', '//*[@id="__layout"]/div/section/div[3]/div[2]/span')
 click('checkout', '//*[@id="__BVID__282___BV_modal_body_"]/div/div[1]/div[1]/a')
 
@@ -111,3 +177,4 @@ input('cardcvv', '//*[@id="checkout-frames-cvv"]', card_cvv)
 focusout()
 
 #click('complete-order', '//*[@id="checkout_paymentInformation"]/div[1]/div/form/div[2]/button')
+'''
