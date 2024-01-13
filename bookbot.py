@@ -9,6 +9,7 @@ from fuzzywuzzy import fuzz
 import time
 import random
 import re
+import sys
 
 #-------------------------------------------------------
 
@@ -23,6 +24,12 @@ card_cvv = secrets.cardcvv
 
 max_price = 15
 max_price_over_cheapest = 3
+
+#book_override = 'Think and Grow Rich - Napoleon Hill' # TODO: remove
+#book_override = 'the psychology of money - morgan housel'
+#book_override = 'black swan - nassim nicholas taleb'
+do_log = False
+do_purchase = true
 
 #-------------------------------------------------------
 
@@ -48,6 +55,9 @@ def focus(name, xpath):
 def defocus():
 	driver.switch_to.default_content()
 
+def exit():
+	sys.exit()
+
 #-------------------------------------------------------
 
 def random_file_line(path):
@@ -67,7 +77,6 @@ def find_best_priced_book(books):
     sorted_books = sorted(books, key=lambda x: x[2])
     min_price = sorted_books[0][2]
     max_allowed_price = min(max_price, min_price + max_price_over_cheapest)
-    print("max_allowed_price " + str(max_allowed_price))
     eligible_books = [book for book in sorted_books if book[2] <= max_allowed_price]
     if eligible_books:
     	return eligible_books[-1]
@@ -80,6 +89,10 @@ def extract_price(price_str):
 	    return float(match.group())
 	else:
 	    return None
+
+def log(msg):
+	if do_log:
+		print(msg)
 
 #-------------------------------------------------------
 
@@ -99,9 +112,14 @@ driver.get(url)
 click('accept-cookies', '//*[@id="onetrust-accept-btn-handler"]')
 click('close-localechange', '//*[@id="__BVID__297___BV_modal_body_"]/div[2]/div[1]/div[2]/div')
 
-book_search = random_file_line('books.txt')
-book_search = 'Think and Grow Rich - Napoleon Hill' # TODO: remove
-target_title, target_author = book_search.split(' - ')
+book_search = random_file_line('books2.txt')
+#book_search = book_override
+if book_search[0] == '#':
+	log("invalid book: starts with #")
+	exit()
+
+target_title, target_author = book_search.split(' - ') # TODO: handle different format
+log(f'searching "{book_search}"')
 input('search', '//*[@id="__layout"]/div/section/div[3]/div[1]/div/input', book_search, True)
 
 # TODO: Handle if a single book is found and we're already on that page
@@ -109,42 +127,46 @@ input('search', '//*[@id="__layout"]/div/section/div[3]/div[1]/div/input', book_
 prodlist = driver.find_element(By.ID, 'atcssearch-undefined')
 bookelems = prodlist.find_elements(By.CLASS_NAME, 'gridItem')
 books = []
-#print(len(books))
 for bookelem in bookelems:
 	title  = bookelem.find_element(By.CLASS_NAME, 'title').text
 	author = bookelem.find_element(By.CLASS_NAME, 'author').text[3:] # trim initial 'by '
 	price  = extract_price(bookelem.find_element(By.CLASS_NAME, 'itemPrice').text)
 	book = (title, author, price)
 	books.append(book)
-	#print(book)
+
+log(f'found {len(books)} books')
+for book in books:
+    log(f"\t{book}")
 
 filtered_books = filter_books(books, target_title, target_author)
+# TODO: handle if none fits
+if not filtered_books:
+	log('no book matched the filter')
+	exit()
 
-print("ALL BOOKS:")
-for book in books:
-    print(f"\t{book}")
-
-print("FILTERED BOOKS:")
+log("filtered books:")
 sorted_books = sorted(filtered_books, key=lambda x: x[2])
 for book in sorted_books:
-    print(f"\t{book}")
+    log(f"\t{book}")
 
 best_book = find_best_priced_book(filtered_books)
-print(f"BEST BOOK:")
-print(f"\t{best_book}")
+if not best_book:
+	log('no best book found')
+	exit()
+# TODO: handle if none fits
+log(f"decided for {best_book}")
 
 best_index = books.index(best_book)
 bookelems[best_index].find_element(By.CLASS_NAME, 'btn-yellow').click() # add to cart
 
-'''
 click('cart', '//*[@id="__layout"]/div/section/div[3]/div[2]/span')
 click('checkout', '//*[@id="__BVID__282___BV_modal_body_"]/div/div[1]/div[1]/a')
 
 click('checkout2', '//*[@id="__layout"]/div/div/section/div/div[4]/div[2]/div[2]/div[1]/a')
 
-input('email', '//*[@id="checkoutMethod_email"]', botemail)
+input('email', '//*[@id="checkoutMethod_email"]', login_email)
 click('already-registered', '//*[@id="checkout_checkoutMethod"]/form/div[2]/button[2]')
-input('password', '//*[@id="checkoutMethod_password"]', botpssw)
+input('password', '//*[@id="checkoutMethod_password"]', login_password)
 click('login', '//*[@id="checkout_checkoutMethod"]/form/div[3]/button')
 
 # select address
@@ -168,5 +190,7 @@ focus('card3', '//*[@id="cvv"]')
 input('cardcvv', '//*[@id="checkout-frames-cvv"]', card_cvv)
 defocus()
 
-#click('complete-order', '//*[@id="checkout_paymentInformation"]/div[1]/div/form/div[2]/button')
-'''
+if do_purchase:
+	click('complete-order', '//*[@id="checkout_paymentInformation"]/div[1]/div/form/div[2]/button')
+	click('confirm-payment', '//*[@id="Use the Wise app"]')
+log('done')
