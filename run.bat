@@ -1,2 +1,3 @@
-.\venv\Scripts\Activate
-python bookbot.py
+call venv\Scripts\Activate
+py bookbot.py
+pause

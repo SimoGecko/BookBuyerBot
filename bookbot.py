@@ -28,8 +28,8 @@ max_price_over_cheapest = 3
 #book_override = 'Think and Grow Rich - Napoleon Hill' # TODO: remove
 #book_override = 'the psychology of money - morgan housel'
 #book_override = 'black swan - nassim nicholas taleb'
-do_log = False
-do_purchase = true
+do_log = True
+do_purchase = True
 
 #-------------------------------------------------------
 
@@ -193,4 +193,5 @@ defocus()
 if do_purchase:
 	click('complete-order', '//*[@id="checkout_paymentInformation"]/div[1]/div/form/div[2]/button')
 	click('confirm-payment', '//*[@id="Use the Wise app"]')
+	log('Success. Book purchased')
 log('done')
