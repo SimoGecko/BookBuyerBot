@@ -2,7 +2,7 @@
 
 ## What is this?
 This is a bot that periodically buys a random book from your book wishlist and ships it directly to you.
-It started as an effort for me to read more, by having a new book that interest me arrive at my doorstep each month, without me having to do anything (other than pay). Plus, the surprise of now knowing what's gonna arrive makes it more interesting.
+It started as an effort for me to read more, by having a new book that interest me arrive at my doorstep each month, without me having to do anything (other than pay). Plus, the surprise of not knowing what's gonna arrive makes it more interesting.
 
 ## How does this work?
 The bot selects a book at random from your book wishlist inside `books.txt`, then uses [Selenium](https://www.selenium.dev/) to navigate to [wob.com](https://www.wob.com/en-gb) - a book shop - to find and purchase the book.
