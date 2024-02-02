@@ -73,6 +73,9 @@ def click(name):
 
 def input(name, value, enter = False):
     elem = driver.find_element(By.XPATH, xpathmap[name])
+    #elem.clear()
+    for i in range(100):
+        elem.send_keys(Keys.BACK_SPACE)
     elem.send_keys(value)
     if enter:
         elem.send_keys(Keys.RETURN)
@@ -144,84 +147,93 @@ driver.get(url)
 click('accept-cookies')
 click('close-localechange')
 
-book_search = random_file_line(books_wishlist)
-if book_search[0] == '#':
-    log("invalid book: starts with #")
-    exit()
+def tryBuyBook():
+    book_search = random_file_line(books_wishlist).rstrip() # removes trailing whitespaces/newlines
+    if book_search[0] == '#':
+        log(f"invalid book: starts with # ({book_search})")
+        return False
 
-target_title, target_author = book_search.split(' - ') # TODO: handle different format
-log(f'searching "{book_search}"')
-input('search', book_search, True)
+    target_title, target_author = book_search.split(' - ') # TODO: handle different format
+    log(f'searching "{book_search}"')
+    input('search', book_search, True)
 
-# TODO: Handle if a single book is found and we're already on that page
+    # TODO: Handle if a single book is found and we're already on that page
 # TODO: Handle if we error out 404
-prodlist = driver.find_element(By.ID, 'atcssearch-undefined')
-bookelems = prodlist.find_elements(By.CLASS_NAME, 'gridItem')
-books = []
-for bookelem in bookelems:
-    title  = bookelem.find_element(By.CLASS_NAME, 'title').text
-    author = bookelem.find_element(By.CLASS_NAME, 'author').text[3:] # trim initial 'by '
-    price  = extract_price(bookelem.find_element(By.CLASS_NAME, 'itemPrice').text)
-    book = (title, author, price)
-    books.append(book)
+    prodlist = driver.find_element(By.ID, 'atcssearch-undefined')
+    bookelems = prodlist.find_elements(By.CLASS_NAME, 'gridItem')
+    books = []
+    for bookelem in bookelems:
+        title  = bookelem.find_element(By.CLASS_NAME, 'title').text
+        author = bookelem.find_element(By.CLASS_NAME, 'author').text[3:] # trim initial 'by '
+        price  = extract_price(bookelem.find_element(By.CLASS_NAME, 'itemPrice').text)
+        book = (title, author, price)
+        books.append(book)
 
-log(f'found {len(books)} books')
-for book in books:
-    log(f"\t{book}")
+    log(f'found {len(books)} books')
+    for book in books:
+        log(f"\t{book}")
 
-filtered_books = filter_books(books, target_title, target_author)
-if not filtered_books:
-    log('no book matched the filter')
-    exit()
+    filtered_books = filter_books(books, target_title, target_author)
+    if not filtered_books:
+        log('no book matched the filter')
+        return False
 
-log("filtered books:")
-sorted_books = sorted(filtered_books, key=lambda x: x[2])
-for book in sorted_books:
-    log(f"\t{book}")
+    log("filtered books:")
+    sorted_books = sorted(filtered_books, key=lambda x: x[2])
+    for book in sorted_books:
+        log(f"\t{book}")
 
-best_book = find_best_priced_book(filtered_books)
-if not best_book:
-    log('no best book found')
-    exit()
-log(f"decided for {best_book}")
+    best_book = find_best_priced_book(filtered_books)
+    if not best_book:
+        log(f'no best book found, all prices too high')
+        return False
+    log(f"decided for {best_book}")
 
-best_index = books.index(best_book)
-bookelems[best_index].find_element(By.CLASS_NAME, 'btn-yellow').click() # add to cart
+    best_index = books.index(best_book)
+    bookelems[best_index].find_element(By.CLASS_NAME, 'btn-yellow').click() # add to cart
 
-click('cart')
-click('checkout')
+    click('cart')
+    click('checkout')
 
-click('checkout2')
+    click('checkout2')
 
-input('email', login_email)
-click('already-registered')
-input('password', login_password)
-click('login')
+    input('email', login_email)
+    click('already-registered')
+    input('password', login_password)
+    click('login')
 
-# select address
-click('shipping-dropdown')
-actions = ActionChains(driver)
-actions.send_keys(Keys.ENTER)
-actions.perform()
+    # select address
+    click('shipping-dropdown')
+    actions = ActionChains(driver)
+    actions.send_keys(Keys.ENTER)
+    actions.perform()
 
-click('nopromo')
-click('continue-to-delivery')
+    click('nopromo')
+    click('continue-to-delivery')
 
-click('continue-to-checkout')
+    click('continue-to-checkout')
 
-focus('card1')
-input('cardnumber', card_number)
-defocus()
-focus('card2')
-input('cardexpiry', card_expiry.replace('/', ''))
-defocus()
-focus('card3')
-input('cardcvv', card_cvv)
-defocus()
+    focus('card1')
+    input('cardnumber', card_number)
+    defocus()
+    focus('card2')
+    input('cardexpiry', card_expiry.replace('/', ''))
+    defocus()
+    focus('card3')
+    input('cardcvv', card_cvv)
+    defocus()
 
-if do_purchase:
-    click('complete-order')
-    click('confirm-payment')
-    log('Success. Book purchased')
+    if do_purchase:
+        click('complete-order')
+        click('confirm-payment')
+        log('Success. Book purchased')
+    log('done')
+    return True
 
-log('done')
+for i in range(5):
+    try:
+        success = tryBuyBook()
+        if success:
+            break
+    except Exception as e:
+        log(f"Exception: {e}. Retrying...")
