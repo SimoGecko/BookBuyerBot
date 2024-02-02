@@ -180,6 +180,7 @@ def tryBuyBook():
     log(f'searching "{book_search}"')
     input('search', book_search, True)
 
+    wait(1) # otherwise we look at the url too soon
     isOnSearchPage = "?search=" in driver.current_url
     if isOnSearchPage:
         # TODO: Handle if a single book is found and we're already on that page
@@ -218,6 +219,7 @@ def tryBuyBook():
         bookelems[best_index].find_element(By.CLASS_NAME, 'btn-yellow').click() # add to cart
     else:
         # is on product page:
+        log('im on prod page')
         price = extract_price(gettext('prodprice'))
         if price > max_price:
             log(f'book is too expensive: {price}')
