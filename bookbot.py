@@ -31,14 +31,48 @@ do_purchase = True
 
 #-------------------------------------------------------
 
-def click(name, xpath):
+xpathmap = {
+    'accept-cookies':       '//*[@id="onetrust-accept-btn-handler"]',
+    'close-localechange':   '//*[@id="__BVID__297___BV_modal_body_"]/div[2]/div[1]/div[2]/div',
+    'search':               '//*[@id="__layout"]/div/section/div[3]/div[1]/div/input',
+    'cart':                 '//*[@id="__layout"]/div/section/div[3]/div[2]/span',
+    'checkout':             '//*[@id="__BVID__282___BV_modal_body_"]/div/div[1]/div[1]/a',
+    
+    'checkout2':            '//*[@id="__layout"]/div/div/section/div/div[3]/div[2]/div[2]/div[1]/a',
+    
+    'email':                '//*[@id="checkoutMethod_email"]',
+    'already-registered':   '//*[@id="checkout_checkoutMethod"]/form/div[2]/button[2]',
+    'password':             '//*[@id="checkoutMethod_password"]',
+    'login':                '//*[@id="checkout_checkoutMethod"]/form/div[3]/button',
+    
+    'shipping-dropdown':    '//*[@id="checkout_shippingInformation"]/form/div[2]/div/div[1]',
+    
+    'nopromo':              '//*[@id="checkout_shippingInformation"]/form/div[3]/label',
+    'continue-to-delivery': '//*[@id="checkout_shippingInformation"]/form/div[5]/button',
+    
+    'continue-to-checkout': '//*[@id="checkout_shippingMethod"]/form/div[2]/button',
+    
+    'card1':                '//*[@id="cardNumber"]',
+    'cardnumber':           '//*[@id="checkout-frames-card-number"]',
+    'card2':                '//*[@id="expiryDate"]',
+    'cardexpiry':           '//*[@id="checkout-frames-expiry-date"]',
+    'card3':                '//*[@id="cvv"]',
+    'cardcvv':              '//*[@id="checkout-frames-cvv"]',
+    
+    'complete-order':       '//*[@id="checkout_paymentInformation"]/div[1]/div/form/div[2]/button',
+    'confirm-payment':      '//*[@id="Use the Wise app"]',
+}
+
+#-------------------------------------------------------
+
+def click(name):
     #driver.find_element(By.XPATH, xpath).click()
     WebDriverWait(driver, 10).until(
-        EC.element_to_be_clickable((By.XPATH, xpath))
+        EC.element_to_be_clickable((By.XPATH, xpathmap[name]))
     ).click()
 
-def input(name, xpath, value, enter = False):
-    elem = driver.find_element(By.XPATH, xpath)
+def input(name, value, enter = False):
+    elem = driver.find_element(By.XPATH, xpathmap[name])
     elem.send_keys(value)
     if enter:
         elem.send_keys(Keys.RETURN)
@@ -46,8 +80,8 @@ def input(name, xpath, value, enter = False):
 def wait(seconds):
     time.sleep(seconds)
 
-def focus(name, xpath):
-    iframe = driver.find_element(By.XPATH, xpath)
+def focus(name):
+    iframe = driver.find_element(By.XPATH, xpathmap[name])
     driver.switch_to.frame(iframe)
 
 def defocus():
@@ -107,8 +141,8 @@ driver.get(url)
 
 #-------------------------------------------------------
 
-click('accept-cookies', '//*[@id="onetrust-accept-btn-handler"]')
-click('close-localechange', '//*[@id="__BVID__297___BV_modal_body_"]/div[2]/div[1]/div[2]/div')
+click('accept-cookies')
+click('close-localechange')
 
 book_search = random_file_line(books_wishlist)
 if book_search[0] == '#':
@@ -117,7 +151,7 @@ if book_search[0] == '#':
 
 target_title, target_author = book_search.split(' - ') # TODO: handle different format
 log(f'searching "{book_search}"')
-input('search', '//*[@id="__layout"]/div/section/div[3]/div[1]/div/input', book_search, True)
+input('search', book_search, True)
 
 # TODO: Handle if a single book is found and we're already on that page
 # TODO: Handle if we error out 404
@@ -154,40 +188,40 @@ log(f"decided for {best_book}")
 best_index = books.index(best_book)
 bookelems[best_index].find_element(By.CLASS_NAME, 'btn-yellow').click() # add to cart
 
-click('cart', '//*[@id="__layout"]/div/section/div[3]/div[2]/span')
-click('checkout', '//*[@id="__BVID__282___BV_modal_body_"]/div/div[1]/div[1]/a')
+click('cart')
+click('checkout')
 
-click('checkout2', '//*[@id="__layout"]/div/div/section/div/div[3]/div[2]/div[2]/div[1]/a')
+click('checkout2')
 
-input('email', '//*[@id="checkoutMethod_email"]', login_email)
-click('already-registered', '//*[@id="checkout_checkoutMethod"]/form/div[2]/button[2]')
-input('password', '//*[@id="checkoutMethod_password"]', login_password)
-click('login', '//*[@id="checkout_checkoutMethod"]/form/div[3]/button')
+input('email', login_email)
+click('already-registered')
+input('password', login_password)
+click('login')
 
 # select address
-click('shipping-dropdown', '//*[@id="checkout_shippingInformation"]/form/div[2]/div/div[1]')
+click('shipping-dropdown')
 actions = ActionChains(driver)
 actions.send_keys(Keys.ENTER)
 actions.perform()
 
-click('nopromo', '//*[@id="checkout_shippingInformation"]/form/div[3]/label')
-click('continue-to-delivery', '//*[@id="checkout_shippingInformation"]/form/div[5]/button')
+click('nopromo')
+click('continue-to-delivery')
 
-click('continue-to-checkout', '//*[@id="checkout_shippingMethod"]/form/div[2]/button')
+click('continue-to-checkout')
 
-focus('card1', '//*[@id="cardNumber"]')
-input('cardnumber', '//*[@id="checkout-frames-card-number"]', card_number)
+focus('card1')
+input('cardnumber', card_number)
 defocus()
-focus('card2', '//*[@id="expiryDate"]')
-input('cardexpiry', '//*[@id="checkout-frames-expiry-date"]', card_expiry.replace('/', ''))
+focus('card2')
+input('cardexpiry', card_expiry.replace('/', ''))
 defocus()
-focus('card3', '//*[@id="cvv"]')
-input('cardcvv', '//*[@id="checkout-frames-cvv"]', card_cvv)
+focus('card3')
+input('cardcvv', card_cvv)
 defocus()
 
 if do_purchase:
-    click('complete-order', '//*[@id="checkout_paymentInformation"]/div[1]/div/form/div[2]/button')
-    click('confirm-payment', '//*[@id="Use the Wise app"]')
+    click('complete-order')
+    click('confirm-payment')
     log('Success. Book purchased')
 
 log('done')
