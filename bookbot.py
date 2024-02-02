@@ -35,6 +35,7 @@ xpathmap = {
     'accept-cookies':       '//*[@id="onetrust-accept-btn-handler"]',
     'close-localechange':   '//*[@id="__BVID__297___BV_modal_body_"]/div[2]/div[1]/div[2]/div',
     'search':               '//*[@id="__layout"]/div/section/div[3]/div[1]/div/input',
+    'prodlist':             '//*[@id="atcssearch-undefined"]',
     'cart':                 '//*[@id="__layout"]/div/section/div[3]/div[2]/span',
     'checkout':             '//*[@id="__BVID__282___BV_modal_body_"]/div/div[1]/div[1]/a',
     
@@ -61,18 +62,36 @@ xpathmap = {
     
     'complete-order':       '//*[@id="checkout_paymentInformation"]/div[1]/div/form/div[2]/button',
     'confirm-payment':      '//*[@id="Use the Wise app"]',
+
+    'prodprice':            '//*[@id="__layout"]/div/div/div/div[2]/div[2]/div/div[3]/div[1]/div[1]',
+    'prod-addcart':         '//*[@id="stickyStart"]/div/div[1]/button',
 }
 
 #-------------------------------------------------------
 
+timeout = 10
+
 def click(name):
     #driver.find_element(By.XPATH, xpath).click()
-    WebDriverWait(driver, 10).until(
-        EC.element_to_be_clickable((By.XPATH, xpathmap[name]))
-    ).click()
+    try:
+        WebDriverWait(driver, timeout).until(
+            EC.element_to_be_clickable((By.XPATH, xpathmap[name]))
+        ).click()
+    except:
+        pass
+
+def get(name):
+    try:
+        #elem = driver.find_element(By.XPATH, xpathmap[name])
+        elem = WebDriverWait(driver, timeout).until(
+            EC.presence_of_element_located((By.XPATH, xpathmap[name]))
+        )
+        return elem
+    except:
+        return None
 
 def input(name, value, enter = False):
-    elem = driver.find_element(By.XPATH, xpathmap[name])
+    elem = get(name)
     #elem.clear()
     for i in range(100):
         elem.send_keys(Keys.BACK_SPACE)
@@ -80,11 +99,15 @@ def input(name, value, enter = False):
     if enter:
         elem.send_keys(Keys.RETURN)
 
+def gettext(name):
+    elem = get(name)
+    return elem.text if elem else ''
+
 def wait(seconds):
     time.sleep(seconds)
 
 def focus(name):
-    iframe = driver.find_element(By.XPATH, xpathmap[name])
+    iframe = get(name)
     driver.switch_to.frame(iframe)
 
 def defocus():
@@ -157,40 +180,49 @@ def tryBuyBook():
     log(f'searching "{book_search}"')
     input('search', book_search, True)
 
-    # TODO: Handle if a single book is found and we're already on that page
-# TODO: Handle if we error out 404
-    prodlist = driver.find_element(By.ID, 'atcssearch-undefined')
-    bookelems = prodlist.find_elements(By.CLASS_NAME, 'gridItem')
-    books = []
-    for bookelem in bookelems:
-        title  = bookelem.find_element(By.CLASS_NAME, 'title').text
-        author = bookelem.find_element(By.CLASS_NAME, 'author').text[3:] # trim initial 'by '
-        price  = extract_price(bookelem.find_element(By.CLASS_NAME, 'itemPrice').text)
-        book = (title, author, price)
-        books.append(book)
+    isOnSearchPage = "?search=" in driver.current_url
+    if isOnSearchPage:
+        # TODO: Handle if a single book is found and we're already on that page
+        # TODO: Handle if we error out 404
+        prodlist = get('prodlist')
+        bookelems = prodlist.find_elements(By.CLASS_NAME, 'gridItem')
+        books = []
+        for bookelem in bookelems:
+            title  = bookelem.find_element(By.CLASS_NAME, 'title').text
+            author = bookelem.find_element(By.CLASS_NAME, 'author').text[3:] # trim initial 'by '
+            price  = extract_price(bookelem.find_element(By.CLASS_NAME, 'itemPrice').text)
+            book = (title, author, price)
+            books.append(book)
 
-    log(f'found {len(books)} books')
-    for book in books:
-        log(f"\t{book}")
+        log(f'found {len(books)} books')
+        for book in books:
+            log(f"\t{book}")
 
-    filtered_books = filter_books(books, target_title, target_author)
-    if not filtered_books:
-        log('no book matched the filter')
-        return False
+        filtered_books = filter_books(books, target_title, target_author)
+        if not filtered_books:
+            log('no book matched the filter')
+            return False
 
-    log("filtered books:")
-    sorted_books = sorted(filtered_books, key=lambda x: x[2])
-    for book in sorted_books:
-        log(f"\t{book}")
+        log("filtered books:")
+        sorted_books = sorted(filtered_books, key=lambda x: x[2])
+        for book in sorted_books:
+            log(f"\t{book}")
 
-    best_book = find_best_priced_book(filtered_books)
-    if not best_book:
-        log(f'no best book found, all prices too high')
-        return False
-    log(f"decided for {best_book}")
+        best_book = find_best_priced_book(filtered_books)
+        if not best_book:
+            log(f'no best book found, all prices too high')
+            return False
+        log(f"decided for {best_book}")
 
-    best_index = books.index(best_book)
-    bookelems[best_index].find_element(By.CLASS_NAME, 'btn-yellow').click() # add to cart
+        best_index = books.index(best_book)
+        bookelems[best_index].find_element(By.CLASS_NAME, 'btn-yellow').click() # add to cart
+    else:
+        # is on product page:
+        price = extract_price(gettext('prodprice'))
+        if price > max_price:
+            log(f'book is too expensive: {price}')
+            return False
+        click('prod-addcart')
 
     click('cart')
     click('checkout')
@@ -229,6 +261,8 @@ def tryBuyBook():
         log('Success. Book purchased')
     log('done')
     return True
+
+#-------------------------------------------------------
 
 for i in range(5):
     try:
