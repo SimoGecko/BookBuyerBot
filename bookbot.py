@@ -157,7 +157,7 @@ bookelems[best_index].find_element(By.CLASS_NAME, 'btn-yellow').click() # add to
 click('cart', '//*[@id="__layout"]/div/section/div[3]/div[2]/span')
 click('checkout', '//*[@id="__BVID__282___BV_modal_body_"]/div/div[1]/div[1]/a')
 
-click('checkout2', '//*[@id="__layout"]/div/div/section/div/div[4]/div[2]/div[2]/div[1]/a')
+click('checkout2', '//*[@id="__layout"]/div/div/section/div/div[3]/div[2]/div[2]/div[1]/a')
 
 input('email', '//*[@id="checkoutMethod_email"]', login_email)
 click('already-registered', '//*[@id="checkout_checkoutMethod"]/form/div[2]/button[2]')
