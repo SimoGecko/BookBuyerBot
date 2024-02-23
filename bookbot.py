@@ -126,7 +126,8 @@ def random_file_line(path):
 def is_close_match(title1, author1, title2, author2, threshold=80):
     title_similarity  = fuzz.token_sort_ratio(title1.lower(), title2.lower())
     author_similarity = fuzz.token_sort_ratio(author1.lower(), author2.lower())
-    return title_similarity >= threshold and author_similarity >= threshold
+    noauthor = author1 == '' or author2 == ''
+    return title_similarity >= threshold and (noauthor or author_similarity >= threshold)
 
 def filter_books(books, target_title, target_author):
     return [book for book in books if is_close_match(book[0], book[1], target_title, target_author)]
@@ -171,12 +172,20 @@ click('accept-cookies')
 click('close-localechange')
 
 def tryBuyBook():
+    book_search = ''
+    for i in range(10):
     book_search = random_file_line(books_wishlist).rstrip() # removes trailing whitespaces/newlines
-    if book_search[0] == '#':
-        log(f"invalid book: starts with # ({book_search})")
+        if book_search != '' and book_search[0] != '#':
+            break
+    if book_search == '':
+        log(f"could not find a valid book from the wishlist")
         return False
 
-    target_title, target_author = book_search.split(' - ') # TODO: handle different format
+    mysplit = book_search.split(' - ')
+    if len(mysplit) == 1:
+        target_title, target_author = mysplit[0], ''
+    else:
+        target_title, target_author = mysplit
     log(f'searching "{book_search}"')
     input('search', book_search, True)
 
